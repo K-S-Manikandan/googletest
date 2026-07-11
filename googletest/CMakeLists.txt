@@ -147,6 +147,23 @@ target_include_directories(gtest_main SYSTEM INTERFACE
 if(CMAKE_SYSTEM_NAME MATCHES "QNX" AND CMAKE_SYSTEM_VERSION VERSION_GREATER_EQUAL 7.1)
   target_link_libraries(gtest PUBLIC regex)
 endif()
+
+# MinGW-w64 15.x with UCRT requires explicit linking against ucrt
+# for _Exit and quick_exit symbols referenced from libmingw32.a.
+# Only link ucrt when targeting UCRT (_UCRT is defined) to avoid breaking
+# builds on MSVCRT-based MinGW toolchains where ucrt is not available.
+if(MINGW)
+  include(CheckCXXSourceCompiles)
+  check_cxx_source_compiles("
+    #ifndef _UCRT
+    #error Not using UCRT
+    #endif
+    int main() { return 0; }
+  " GTEST_HAS_UCRT)
+  if(GTEST_HAS_UCRT)
+    target_link_libraries(gtest PUBLIC ucrt)
+  endif()
+endif()
 target_link_libraries(gtest_main PUBLIC gtest)
 
 ########################################################################
